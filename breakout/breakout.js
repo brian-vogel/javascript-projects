@@ -5,20 +5,23 @@ let score = 0;
 let lives = 3;
 
 // ball position
+const MAX_BALL_SPEED = 10;
+const BALL_INCREASE = 1.05;
 const ballRadius = 10;
 let ballPositionX = canvas.width / 2;
 let ballPositionY = canvas.height - 30;
-let ballPositionChangeX = 2;
+let ballPositionChangeX = (Math.random() * 4) - 2;
 let ballPositionChangeY = -2;
 let ballColor = randomHexColor();
 
 // paddle
 const paddleHeight = 10;
-const paddleWidth = 500;
+const paddleWidth = 100;
 let paddleX = (canvas.width - paddleWidth) / 2;
 let movePaddleRight = false;
 let movePaddleLeft = false;
 
+// bricks
 const brickRowCount = 3;
 const brickColumnCount = 5;
 const brickWidth = 75;
@@ -32,7 +35,7 @@ const bricks = [];
 for (c = 0; c < brickColumnCount; c++) {
   bricks[c] = [];
   for (r = 0; r < brickRowCount; r++) {
-    bricks[c][r] = { x: 0, y: 0, status: brickHitPoints };
+    bricks[c][r] = { x: 0, y: 0, status: brickHitPoints, color: randomHexColor() };
   }
 }
 
@@ -40,14 +43,13 @@ function randomHexColor() {
   return '#' + Math.floor(Math.random() * 16777215).toString(16);
 }
 
-function collisionDetection() {
+function brickCollisionDetection() {
   for (c = 0; c < brickColumnCount; c++) {
     for (r = 0; r < brickRowCount; r++) {
       const b = bricks[c][r];
       if (b.status > 0) {
         if (ballPositionX > b.x && ballPositionX < b.x + brickWidth && ballPositionY > b.y && ballPositionY < b.y + brickHeight) {
-          ballPositionChangeY = -ballPositionChangeY;
-          ballColor = randomHexColor();
+          ballCollisionDetectionY();
           b.status--;
           score++;
           if (score == brickRowCount * brickColumnCount * brickHitPoints) {
@@ -60,6 +62,38 @@ function collisionDetection() {
   }
 }
 
+function ballCollisionDetectionX() {
+  if (ballPositionChangeX > 0) {
+    ballPositionChangeX = -Math.min(ballPositionChangeX * BALL_INCREASE, MAX_BALL_SPEED);
+  } else {
+    ballPositionChangeX = -Math.max(ballPositionChangeX * BALL_INCREASE, -MAX_BALL_SPEED);
+  }
+
+  if (ballPositionChangeY > 0) {
+    ballPositionChangeY = Math.min(ballPositionChangeY * BALL_INCREASE, MAX_BALL_SPEED);
+  } else {
+    ballPositionChangeY = Math.max(ballPositionChangeY * BALL_INCREASE, -MAX_BALL_SPEED);
+  }
+
+  ballColor = randomHexColor();
+}
+
+function ballCollisionDetectionY() {
+  if (ballPositionChangeY > 0) {
+    ballPositionChangeY = -Math.min(ballPositionChangeY * BALL_INCREASE, MAX_BALL_SPEED);
+  } else {
+    ballPositionChangeY = -Math.max(ballPositionChangeY * BALL_INCREASE, -MAX_BALL_SPEED);
+  }
+
+  if (ballPositionChangeX > 0) {
+    ballPositionChangeX = Math.min(ballPositionChangeX * BALL_INCREASE, MAX_BALL_SPEED);
+  } else {
+    ballPositionChangeX = Math.max(ballPositionChangeX * BALL_INCREASE, -MAX_BALL_SPEED);
+  }
+
+  ballColor = randomHexColor();
+}
+
 function drawScore() {
   ctx.font = "16px Arial";
   ctx.fillStyle = "#0095DD";
@@ -69,7 +103,7 @@ function drawScore() {
 function drawLives() {
   ctx.font = "16px Arial";
   ctx.fillStyle = "#0095DD";
-  ctx.fillText("Lives: " + lives, canvas.width - 65, 20);
+  ctx.fillText("Lives: " + lives - 1, canvas.width - 65, 20);
 }
 
 function drawBall() {
@@ -98,7 +132,7 @@ function drawBricks() {
         bricks[c][r].y = brickY;
         ctx.beginPath();
         ctx.rect(brickX, brickY, brickWidth, brickHeight);
-        ctx.fillStyle = "#0095DD";
+        ctx.fillStyle = bricks[c][r].color;
         ctx.fill();
         ctx.closePath();
       }
@@ -113,21 +147,17 @@ function draw() {
   drawBricks();
   drawPaddle();
   drawBall();
-  collisionDetection();
+  brickCollisionDetection();
 
   if (ballPositionX + ballPositionChangeX > canvas.width - ballRadius || ballPositionX + ballPositionChangeX < ballRadius) {
-    ballPositionChangeX = -ballPositionChangeX;
-    ballColor = randomHexColor();
+    ballCollisionDetectionX();
   }
+
   if (ballPositionY + ballPositionChangeY < ballRadius) {
-    ballPositionChangeY = -ballPositionChangeY;
-    ballColor = randomHexColor();
+    ballCollisionDetectionY()
   } else if (ballPositionY + ballPositionChangeY > canvas.height - ballRadius) {
     if (ballPositionX > paddleX && ballPositionX < paddleX + paddleWidth) {
-      ballPositionChangeY = -(ballPositionChangeY * 1.1);
-      ballPositionChangeX = ballPositionChangeX * 1.1;
-      ballColor = randomHexColor();
-
+      ballCollisionDetectionY();
     }
     else {
       lives--;
@@ -137,8 +167,8 @@ function draw() {
       }
       else {
         ballPositionX = canvas.width / 2;
-        ballPositionChangeY = canvas.height - 30;
-        ballPositionChangeX = 2;
+        ballPositionY = canvas.height - 30;
+        ballPositionChangeX = (Math.random() * 4) - 2;
         ballPositionChangeY = -2;
         paddleX = (canvas.width - paddleWidth) / 2;
       }
@@ -149,10 +179,10 @@ function draw() {
   ballPositionY += ballPositionChangeY;
 
   if (movePaddleRight && paddleX < canvas.width - paddleWidth) {
-    paddleX += 7;
+    paddleX += 10;
   }
   else if (movePaddleLeft && paddleX > 0) {
-    paddleX -= 7;
+    paddleX -= 10;
   }
 
   requestAnimationFrame(draw);
